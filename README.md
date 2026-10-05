@@ -176,7 +176,7 @@ Uma sequência sugerida para análise da entrega é:
 3. consultar a [implementação de referência](src/regras_parametrizacao.py);
 4. verificar os [cenários de teste](src/test_regras_parametrizacao.py).
 
-Essa sequência permite acompanhar a transformação dos requisitos funcionais em regras, decisões e implementação.
+Essa sequência permite acompanhar a transformação dos requisitos funcionais em regras de negócio, decisões, implementação e testes.
 
 ---
 
@@ -196,6 +196,7 @@ teste-analista-parametrizacao/
 │       └── fluxo-irrf.mmd
 │
 └── src/
+    ├── __init__.py
     ├── README.md
     ├── regras_parametrizacao.py
     └── test_regras_parametrizacao.py
