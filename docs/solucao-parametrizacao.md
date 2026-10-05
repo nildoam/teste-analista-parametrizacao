@@ -120,6 +120,8 @@ A classificação do regime de trabalho constitui uma das principais entradas da
 
 Para fins da solução proposta, os regimes são agrupados conforme a forma de contribuição previdenciária.
 
+> **Premissa de parametrização:** os agrupamentos apresentados a seguir representam a interpretação funcional adotada para a solução do teste. Em uma implantação real, o enquadramento previdenciário deverá ser confirmado pelos dados cadastrais e pelas regras legais/configurações vigentes de cada vínculo.
+
 #### RGPS — Regime Geral de Previdência Social
 
 São tratados no grupo de contribuição ao RGPS os vínculos enquadrados, conforme as condições do teste, como:
@@ -143,7 +145,7 @@ Quando atendidas as condições necessárias, deverá ser avaliado o lançamento
 
 O servidor público militar deve ser tratado separadamente dos grupos anteriores.
 
-Embora possua natureza previdenciária própria, seu enquadramento não deve ser automaticamente tratado como RGPS ou RPPS civil. A solução deverá preservar essa distinção para permitir tratamento específico conforme as regras definidas para esse regime.
+Embora possua natureza previdenciária própria, não presumir seu enquadramento em RGPS ou RPPS sem a identificação do regime previdenciário aplicável ao vínculo. A solução deverá preservar essa distinção para permitir tratamento específico conforme as regras definidas para esse regime.
 
 ### 5.4 Informações utilizadas na decisão de IRRF
 
@@ -201,6 +203,16 @@ Essa separação permite que os dados cadastrais sejam inicialmente interpretado
 ## 6. Regras de negócio
 
 A partir dos dados de entrada definidos anteriormente, as regras de negócio deverão determinar **quais rubricas de desconto são aplicáveis a cada servidor em determinada competência**.
+
+### Quantidade de rubricas propostas
+
+Para atendimento das regras apresentadas no teste, propõe-se inicialmente a criação de **3 rubricas de desconto**:
+
+1. **IRRF — Imposto de Renda Retido na Fonte**;
+2. **RGPS/INSS — Contribuição Previdenciária do Regime Geral**;
+3. **RPPS — Contribuição Previdenciária do Regime Próprio**.
+
+A quantidade proposta considera o agrupamento dos servidores que compartilham a mesma natureza de desconto e a mesma lógica geral de incidência, evitando a criação desnecessária de rubricas distintas para cada regime de trabalho.
 
 A solução considera inicialmente três grupos principais de rubricas:
 
