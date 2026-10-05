@@ -1,23 +1,184 @@
 # Teste Técnico — Analista de Dados / Parametrização
 
-Este repositório apresenta a solução desenvolvida para o teste técnico de **Analista de Dados/Parametrização**.
+Este repositório apresenta a solução desenvolvida para o teste técnico de **Analista de Dados/Parametrização**, com foco na interpretação de requisitos, estruturação de regras de negócio e tradução dessas regras para uma lógica de parametrização rastreável e testável.
 
-O objetivo da proposta é demonstrar a capacidade de interpretar requisitos funcionais, estruturar regras de negócio e traduzi-las em uma solução de parametrização clara, rastreável e passível de implementação.
+A proposta foi organizada para demonstrar o caminho entre a análise funcional e a implementação:
 
-## 1. Objetivo
+**Requisito → Regra de negócio → Matriz de decisão → Fluxograma → Pseudocódigo → Implementação → Teste**
 
-A solução foi estruturada com foco na análise e parametrização das regras apresentadas no teste técnico, considerando:
+---
 
-- identificação dos dados necessários ao processamento;
-- definição das regras de negócio;
-- organização das condições e decisões;
-- tratamento de cenários e exceções;
-- representação gráfica dos fluxos de decisão;
-- implementação simplificada da lógica como prova de conceito.
+## Objetivo
 
-A abordagem busca separar a **regra de negócio** da **implementação**, facilitando a manutenção, validação e evolução da solução.
+O objetivo da solução é estruturar os critérios lógicos necessários para determinar a aplicabilidade das rubricas relacionadas a:
 
-## 2. Estrutura do repositório
+- **IRRF** — Imposto de Renda Retido na Fonte;
+- **RGPS/INSS** — contribuição ao Regime Geral de Previdência Social;
+- **RPPS** — contribuição ao Regime Próprio de Previdência Social.
+
+A solução concentra-se na decisão sobre **quando uma rubrica deve ou não ser aplicada**, independentemente da fórmula utilizada posteriormente para cálculo de seu valor.
+
+---
+
+## Estrutura da solução
+
+A entrega foi dividida em três componentes principais:
+
+### 1. Documentação funcional e técnica
+
+Contém a análise dos requisitos, dados de entrada, regras de negócio, matrizes de decisão, exceções, pseudocódigo e cenários de teste.
+
+➡️ [Acessar documentação técnica](docs/solucao-parametrizacao.md)
+
+### 2. Fluxos de decisão
+
+Representam graficamente as principais decisões relacionadas ao enquadramento previdenciário e ao IRRF.
+
+➡️ [Visualizar fluxogramas](docs/diagramas/README.md)
+
+Arquivos-fonte:
+
+- [Fluxo previdenciário](docs/diagramas/fluxo-previdenciario.mmd)
+- [Fluxo de IRRF](docs/diagramas/fluxo-irrf.mmd)
+
+### 3. Implementação de referência
+
+Demonstra em Python como as regras documentadas podem ser traduzidas para uma lógica computacional simples e testável.
+
+➡️ [Consultar implementação](src/regras_parametrizacao.py)
+
+➡️ [Consultar cenários de teste](src/test_regras_parametrizacao.py)
+
+➡️ [Documentação da implementação](src/README.md)
+
+---
+
+## Visão geral do processamento
+
+A solução utiliza inicialmente os dados cadastrais e funcionais do servidor para determinar seu enquadramento.
+
+O processamento pode ser resumido da seguinte forma:
+
+```text
+Servidor / Vínculo
+        │
+        ▼
+ Validação da vigência
+        │
+        ▼
+Identificação do regime
+        │
+        ├──────────────┐
+        ▼              ▼
+ Previdência         IRRF
+        │              │
+        ▼              ▼
+ RGPS / RPPS       Tributação
+ / Específico      / Isenção
+        │              │
+        └──────┬───────┘
+               ▼
+      Rubricas aplicáveis
+               +
+       Ocorrências para
+            análise
+```
+
+As decisões previdenciárias e tributárias são avaliadas de forma independente, permitindo combinações como:
+
+- `RGPS + IRRF`;
+- `RPPS + IRRF`;
+- somente `RGPS`;
+- somente `RPPS`;
+- nenhuma rubrica;
+- ocorrência para análise.
+
+---
+
+## Princípios adotados
+
+A solução foi construída considerando alguns princípios de parametrização:
+
+**Rastreabilidade**  
+Cada resultado deve poder ser relacionado à regra que o produziu.
+
+**Separação de responsabilidades**  
+As regras previdenciárias e tributárias são avaliadas separadamente.
+
+**Vigência**  
+Vínculos, isenções e demais condições são avaliados considerando a competência processada.
+
+**Falha segura**  
+Uma condição desconhecida ou inconsistente não deve gerar automaticamente uma rubrica de desconto.
+
+**Parametrização**  
+Informações sujeitas a alteração devem, sempre que possível, ser tratadas como parâmetros e não como valores fixos na implementação.
+
+---
+
+## Cenários de validação
+
+A implementação inclui testes para diferentes situações, entre elas:
+
+| Cenário | Resultado esperado |
+|---|---|
+| Efetivo RPPS, tributável e sem isenção | `RPPS + IRRF` |
+| Temporário, tributável e sem isenção | `RGPS + IRRF` |
+| RGPS com isenção de IRRF vigente | `RGPS` |
+| Inativo/Aposentado com isenção vigente | Sem `IRRF` |
+| Vínculo encerrado | Nenhuma rubrica |
+| Regime não identificado | Ocorrência para análise |
+| Regime militar | Tratamento previdenciário específico |
+
+Os cenários completos estão descritos na [documentação técnica](docs/solucao-parametrizacao.md#12-cenários-de-teste).
+
+---
+
+## Executando a implementação
+
+A implementação utiliza apenas recursos da biblioteca padrão do Python.
+
+Para executar o exemplo:
+
+```bash
+python src/regras_parametrizacao.py
+```
+
+Resultado esperado:
+
+```text
+{
+    'rubricas': ['RPPS', 'IRRF'],
+    'ocorrencias': []
+}
+```
+
+### Executando os testes
+
+A partir da raiz do repositório:
+
+```bash
+python -m unittest src/test_regras_parametrizacao.py
+```
+
+Quando as regras e a implementação estiverem consistentes, os testes deverão ser concluídos sem falhas.
+
+---
+
+## Como avaliar esta solução
+
+Uma sequência sugerida para análise da entrega é:
+
+1. consultar a [documentação técnica](docs/solucao-parametrizacao.md);
+2. visualizar os [fluxos de decisão](docs/diagramas/README.md);
+3. consultar a [implementação de referência](src/regras_parametrizacao.py);
+4. verificar os [cenários de teste](src/test_regras_parametrizacao.py).
+
+Essa sequência permite acompanhar a transformação dos requisitos funcionais em regras, decisões e implementação.
+
+---
+
+## Estrutura do repositório
 
 ```text
 teste-analista-parametrizacao/
@@ -25,120 +186,28 @@ teste-analista-parametrizacao/
 ├── README.md
 │
 ├── docs/
-│   ├── solucao-parametrizacao.pdf
-│   │
+│   ├── README.md
+│   ├── solucao-parametrizacao.md
 │   └── diagramas/
-│       ├── fluxo-previdenciario.png
+│       ├── README.md
 │       ├── fluxo-previdenciario.mmd
-│       ├── fluxo-irrf.png
 │       └── fluxo-irrf.mmd
 │
 └── src/
-    └── regras_parametrizacao.py
+    ├── README.md
+    ├── regras_parametrizacao.py
+    └── test_regras_parametrizacao.py
 ```
-
-### `README.md`
-
-Apresenta uma visão geral do problema, da abordagem utilizada e da organização da solução.
-
-### `docs/`
-
-Contém a documentação técnica detalhada da proposta de parametrização.
-
-### `docs/diagramas/`
-
-Contém os fluxogramas utilizados para representar graficamente as principais decisões das regras de negócio.
-
-Os arquivos-fonte dos diagramas também são mantidos no repositório para permitir manutenção e evolução da documentação.
-
-### `src/`
-
-Contém uma implementação simplificada das regras de parametrização, utilizada como prova de conceito da solução proposta.
-
-## 3. Abordagem adotada
-
-A solução foi organizada em etapas:
-
-1. interpretação dos requisitos apresentados;
-2. identificação das informações de entrada;
-3. levantamento das regras e condições;
-4. organização das regras em matrizes de decisão;
-5. identificação de exceções e situações específicas;
-6. representação dos processos por meio de fluxogramas;
-7. tradução das principais regras para pseudocódigo;
-8. implementação simplificada da lógica.
-
-Essa abordagem permite que as regras sejam analisadas inicialmente sob a perspectiva funcional e, posteriormente, traduzidas para uma implementação tecnológica.
-
-## 4. Regras de negócio
-
-A parametrização considera os cenários definidos no teste técnico, incluindo regras relacionadas a:
-
-- enquadramento previdenciário;
-- identificação do regime aplicável;
-- incidências e retenções;
-- tratamento das rubricas;
-- condições específicas de processamento;
-- cálculo e tratamento do IRRF;
-- situações excepcionais previstas nas regras apresentadas.
-
-As regras completas, suas condições e respectivos tratamentos estão descritos na documentação técnica disponível no diretório `docs`.
-
-## 5. Fluxos de decisão
-
-Para facilitar a compreensão das regras, foram definidos fluxogramas representando os principais pontos de decisão da parametrização.
-
-Entre os fluxos documentados estão:
-
-- identificação e tratamento do enquadramento previdenciário;
-- avaliação das condições relacionadas ao IRRF.
-
-Os diagramas permitem visualizar as decisões antes de sua tradução para código, facilitando a validação funcional da solução.
-
-## 6. Implementação de referência
-
-O diretório `src` apresenta uma implementação simplificada das principais regras descritas na documentação.
-
-O objetivo do código não é representar um sistema de folha de pagamento completo, mas demonstrar como as regras de negócio podem ser transformadas em uma lógica computacional organizada e testável.
-
-## 7. Premissas da solução
-
-Para elaboração da proposta foram consideradas as seguintes premissas:
-
-- as regras apresentadas no teste constituem a principal referência funcional;
-- as decisões devem ser rastreáveis até suas respectivas regras de negócio;
-- regras e exceções devem estar claramente separadas;
-- parâmetros devem ser utilizados sempre que possível em substituição a valores fixos no código;
-- a solução deve permitir evolução sem exigir reestruturação completa da lógica;
-- a implementação apresentada possui caráter demonstrativo.
-
-## 8. Tecnologias e recursos utilizados
-
-Para documentação e demonstração da solução foram utilizados:
-
-- **Markdown** — documentação do repositório;
-- **Mermaid** — modelagem dos fluxos de decisão;
-- **Python** — implementação simplificada das regras;
-- **Git/GitHub** — versionamento e disponibilização dos artefatos.
-
-## 9. Organização da entrega
-
-A solução está dividida em três componentes principais:
-
-**1. Documentação funcional e técnica**
-
-Descrição das regras, premissas, entradas, decisões, exceções e resultados esperados.
-
-**2. Representação gráfica**
-
-Fluxogramas das principais decisões envolvidas na parametrização.
-
-**3. Implementação de referência**
-
-Código simplificado demonstrando a tradução das regras de negócio para uma lógica computacional.
 
 ---
 
-**Teste Técnico — Analista de Dados / Parametrização**
+## Escopo
 
-**Francinildo Vieira**
+A implementação possui caráter de **prova de conceito** e tem como objetivo demonstrar a interpretação e estruturação das regras apresentadas no teste.
+
+Não fazem parte do escopo o cálculo financeiro das rubricas, tabelas progressivas, alíquotas, persistência em banco de dados ou integração com sistemas externos.
+
+---
+
+**Francinildo Vieira**  
+Teste Técnico — Analista de Dados / Parametrização
