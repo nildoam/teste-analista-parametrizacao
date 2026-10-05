@@ -489,3 +489,175 @@ Por exemplo:
 | Vínculo não vigente | Não aplicável | Não | Nenhuma rubrica decorrente do vínculo |
 
 Essa separação evita criar uma regra única excessivamente complexa e permite que cada domínio seja alterado ou validado de forma independente.
+
+## 8. Tratamento de exceções
+
+A parametrização deve prever situações em que os dados cadastrais sejam insuficientes, inconsistentes ou incompatíveis com as regras definidas.
+
+Como princípio de segurança, uma condição não identificada não deverá resultar automaticamente no lançamento de uma rubrica de desconto.
+
+Nesses casos, a ocorrência deverá ser identificada e disponibilizada para análise, permitindo sua rastreabilidade e posterior correção.
+
+### 8.1 Vínculo não vigente
+
+Quando o vínculo não estiver vigente na competência processada, as regras associadas a esse vínculo não deverão produzir lançamentos.
+
+```text
+SE vinculo_vigente = FALSO
+
+ENTÃO
+    não gerar rubrica previdenciária decorrente do vínculo
+    não gerar IRRF decorrente do vínculo
+```
+
+O encerramento do vínculo, portanto, funciona como uma condição anterior às demais avaliações.
+
+---
+
+### 8.2 Regime previdenciário não identificado
+
+Caso as informações cadastrais não permitam determinar o enquadramento previdenciário, o sistema não deverá presumir automaticamente RGPS ou RPPS.
+
+```text
+SE grupo_previdenciario = NÃO_IDENTIFICADO
+
+ENTÃO
+    não lançar RGPS automaticamente
+    não lançar RPPS automaticamente
+    registrar ocorrência para análise
+```
+
+Essa abordagem reduz o risco de geração de desconto previdenciário incorreto em decorrência de cadastro incompleto ou inconsistente.
+
+---
+
+### 8.3 Informações cadastrais obrigatórias ausentes
+
+A ausência de informações essenciais deverá impedir a aplicação automática das regras que dependam desses dados.
+
+São exemplos:
+
+- ausência do regime de trabalho;
+- ausência do regime previdenciário quando necessário;
+- ausência das informações necessárias para determinar a vigência;
+- situação funcional não reconhecida;
+- dados incompatíveis entre vínculo e regime.
+
+A ocorrência deverá ser identificada para correção cadastral antes da aplicação da respectiva regra.
+
+---
+
+### 8.4 Informações cadastrais conflitantes
+
+Quando duas ou mais informações produzirem enquadramentos incompatíveis, a parametrização não deverá escolher silenciosamente uma delas.
+
+Exemplo conceitual:
+
+```text
+regime_trabalho = TEMPORÁRIO
+regime_previdenciario = RPPS
+```
+
+Caso essa combinação não seja válida segundo as regras estabelecidas, o registro deverá ser classificado como inconsistente.
+
+```text
+SE dados_cadastrais_conflitantes = VERDADEIRO
+
+ENTÃO
+    suspender decisão automática dependente do conflito
+    registrar inconsistência
+    encaminhar para validação
+```
+
+---
+
+### 8.5 Isenção de IRRF fora da vigência
+
+A existência de um registro histórico de isenção não significa necessariamente que a condição seja válida na competência processada.
+
+A regra deverá considerar seu período de vigência.
+
+```text
+SE possui_registro_isencao = VERDADEIRO
+   E isencao_vigente = FALSO
+
+ENTÃO
+    tratar servidor como não isento na competência
+```
+
+Dessa forma, somente uma condição válida no período processado poderá impedir o lançamento da rubrica de IRRF.
+
+---
+
+### 8.6 Servidor inativo ou aposentado sem isenção
+
+A situação de inatividade ou aposentadoria, isoladamente, não deverá ser interpretada como isenção automática de IRRF.
+
+```text
+SE situacao_funcional = INATIVO_OU_APOSENTADO
+   E possui_isencao_irrf = FALSO
+
+ENTÃO
+    continuar avaliação normal da regra de IRRF
+```
+
+Assim, a exceção deverá depender explicitamente da existência e vigência da condição de isenção.
+
+---
+
+### 8.7 Regime militar
+
+O enquadramento militar não deverá ser convertido automaticamente em RGPS ou RPPS civil.
+
+```text
+SE grupo_previdenciario = MILITAR
+
+ENTÃO
+    não aplicar regra RGPS
+    não aplicar regra RPPS civil
+    direcionar para tratamento previdenciário específico
+```
+
+A separação evita que uma regra genérica produza resultado incompatível com o regime identificado.
+
+---
+
+### 8.8 Falha segura
+
+Como princípio geral da solução, situações não reconhecidas deverão adotar comportamento de **falha segura**.
+
+Isso significa que:
+
+> uma condição desconhecida ou inconsistente não deverá gerar automaticamente uma rubrica de desconto.
+
+A ocorrência deverá ser registrada para análise, contendo, sempre que possível:
+
+- identificação do servidor;
+- competência;
+- vínculo;
+- regra avaliada;
+- condição encontrada;
+- resultado da validação;
+- motivo do impedimento.
+
+Essa estratégia permite auditoria e facilita a identificação de problemas cadastrais ou de parametrização.
+
+---
+
+## 9. Fluxos de decisão
+
+As regras descritas anteriormente serão representadas graficamente para facilitar sua validação e compreensão.
+
+Foram definidos dois fluxos principais:
+
+1. **Fluxo de enquadramento e contribuição previdenciária** — responsável por determinar RGPS, RPPS, regime militar ou situações que exijam análise.
+
+2. **Fluxo de decisão do IRRF** — responsável por avaliar vigência, rendimento tributável e condições de isenção.
+
+Os diagramas serão mantidos no diretório:
+
+```text
+docs/diagramas/
+```
+
+Além da representação gráfica, os respectivos arquivos-fonte serão mantidos no repositório para permitir manutenção e versionamento dos fluxos.
