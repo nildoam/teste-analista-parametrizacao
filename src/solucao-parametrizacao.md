@@ -213,3 +213,279 @@ A solução considera inicialmente três grupos principais de rubricas:
 A definição dessas rubricas representa a estrutura mínima necessária para atender aos cenários previdenciários e tributários apresentados no teste.
 
 O tratamento do regime militar será mantido separado até a definição de sua regra específica, evitando classificá-lo incorretamente como RGPS ou RPPS civil.
+
+---
+
+### 6.1 Regra de enquadramento previdenciário
+
+Antes de determinar qual rubrica previdenciária deverá ser lançada, a solução deve identificar o enquadramento previdenciário correspondente ao vínculo do servidor.
+
+A avaliação deverá ocorrer somente para vínculos vigentes na competência processada.
+
+#### Condições
+
+1. Identificar o vínculo funcional do servidor.
+2. Verificar se o vínculo está vigente na competência.
+3. Identificar o regime de trabalho.
+4. Identificar o regime previdenciário associado ao vínculo.
+5. Classificar o servidor em um dos grupos previdenciários previstos.
+
+#### Decisão
+
+```text
+SE vínculo não estiver vigente
+    grupo_previdenciario = NÃO_APLICÁVEL
+
+SENÃO SE regime possuir enquadramento no RGPS
+    grupo_previdenciario = RGPS
+
+SENÃO SE regime possuir enquadramento no RPPS
+    grupo_previdenciario = RPPS
+
+SENÃO SE regime corresponder ao regime militar
+    grupo_previdenciario = MILITAR
+
+SENÃO
+    grupo_previdenciario = NÃO_IDENTIFICADO
+```
+
+#### Resultado
+
+A regra deverá produzir uma classificação previdenciária que será utilizada pelas regras posteriores:
+
+- `RGPS`;
+- `RPPS`;
+- `MILITAR`;
+- `NÃO_APLICÁVEL`;
+- `NÃO_IDENTIFICADO`.
+
+A utilização de `NÃO_IDENTIFICADO` é importante para impedir que um cadastro não reconhecido seja automaticamente enquadrado em um regime previdenciário incorreto.
+
+---
+
+### 6.2 Regra de contribuição ao RGPS/INSS
+
+A rubrica de contribuição ao RGPS deverá ser avaliada para os vínculos enquadrados no Regime Geral de Previdência Social.
+
+Entre os cenários identificados estão:
+
+- servidor comissionado sem vínculo efetivo;
+- servidor temporário;
+- prestador de serviços pessoa física / contribuinte individual.
+
+#### Condições
+
+Para aplicação da regra deverão ser satisfeitas as seguintes condições:
+
+- o vínculo deve estar vigente na competência;
+- o enquadramento previdenciário deve corresponder ao `RGPS`;
+- o vínculo deve possuir condição de incidência previdenciária;
+- não deverá existir condição cadastral que impeça a aplicação da contribuição.
+
+#### Decisão
+
+```text
+SE vinculo_vigente = VERDADEIRO
+   E grupo_previdenciario = RGPS
+   E possui_incidencia_previdenciaria = VERDADEIRO
+
+ENTÃO
+   aplica_contribuicao_rgps = VERDADEIRO
+
+SENÃO
+   aplica_contribuicao_rgps = FALSO
+```
+
+#### Resultado
+
+Quando o resultado for verdadeiro, deverá ser gerado o lançamento lógico da rubrica:
+
+```text
+CONTRIBUIÇÃO PREVIDENCIÁRIA — RGPS/INSS
+```
+
+A regra determina a **aplicabilidade da rubrica**, não o seu valor financeiro. Alíquotas, limites e demais elementos de cálculo deverão ser tratados como parâmetros específicos do processo de cálculo.
+
+---
+
+### 6.3 Regra de contribuição ao RPPS
+
+A rubrica de contribuição ao RPPS deverá ser avaliada para servidores cujo vínculo efetivo esteja submetido ao Regime Próprio de Previdência Social.
+
+#### Condições
+
+Para aplicação da regra deverão ser satisfeitas as seguintes condições:
+
+- o vínculo deve estar vigente;
+- o servidor deve possuir vínculo efetivo sujeito ao regime próprio;
+- o enquadramento previdenciário deve corresponder ao `RPPS`;
+- deverá existir incidência previdenciária para a situação processada.
+
+#### Decisão
+
+```text
+SE vinculo_vigente = VERDADEIRO
+   E grupo_previdenciario = RPPS
+   E possui_incidencia_previdenciaria = VERDADEIRO
+
+ENTÃO
+   aplica_contribuicao_rpps = VERDADEIRO
+
+SENÃO
+   aplica_contribuicao_rpps = FALSO
+```
+
+#### Resultado
+
+Quando satisfeitas as condições, deverá ser gerado o lançamento lógico da rubrica:
+
+```text
+CONTRIBUIÇÃO PREVIDENCIÁRIA — RPPS
+```
+
+Assim como na regra do RGPS, o cálculo financeiro não integra esta decisão. A parametrização determina inicialmente se a rubrica deverá ou não participar do processamento.
+
+---
+
+### 6.4 Regra de IRRF
+
+A avaliação da rubrica de IRRF deverá ocorrer independentemente da classificação previdenciária.
+
+Dessa forma, um servidor enquadrado no RGPS ou RPPS poderá também possuir incidência de IRRF, desde que as condições tributárias correspondentes sejam satisfeitas.
+
+#### Condições
+
+Para aplicação da regra deverão ser avaliadas:
+
+- vigência do vínculo na competência;
+- existência de rendimento sujeito à tributação;
+- situação funcional do servidor;
+- existência de condição de isenção de IRRF;
+- vigência da eventual condição de isenção.
+
+#### Regra geral
+
+```text
+SE vinculo_vigente = VERDADEIRO
+   E possui_rendimento_tributavel = VERDADEIRO
+   E possui_isencao_irrf = FALSO
+
+ENTÃO
+   aplica_irrf = VERDADEIRO
+
+SENÃO
+   aplica_irrf = FALSO
+```
+
+#### Exceção — servidor inativo/aposentado com isenção
+
+Quando o servidor estiver enquadrado como inativo ou aposentado e possuir condição válida de isenção de Imposto de Renda, a rubrica de IRRF não deverá ser lançada enquanto a isenção permanecer vigente.
+
+```text
+SE situacao_funcional = INATIVO_OU_APOSENTADO
+   E possui_isencao_irrf = VERDADEIRO
+   E isencao_vigente = VERDADEIRO
+
+ENTÃO
+   aplica_irrf = FALSO
+```
+
+#### Resultado
+
+Quando `aplica_irrf = VERDADEIRO`, deverá ser gerado o lançamento lógico da rubrica:
+
+```text
+IRRF — IMPOSTO DE RENDA RETIDO NA FONTE
+```
+
+Quando houver condição válida de isenção, a ausência do lançamento deverá ser rastreável até a regra que provocou a não incidência.
+
+---
+
+### 6.5 Regra de tratamento do regime militar
+
+O regime militar deverá permanecer separado do tratamento previdenciário aplicado aos regimes RGPS e RPPS civil.
+
+#### Decisão
+
+```text
+SE grupo_previdenciario = MILITAR
+
+ENTÃO
+   NÃO lançar automaticamente rubrica RGPS
+   NÃO lançar automaticamente rubrica RPPS
+   encaminhar para regra previdenciária específica
+```
+
+Essa separação evita que uma classificação não contemplada pelas regras gerais produza lançamento previdenciário indevido.
+
+---
+
+### 6.6 Ordem de avaliação das regras
+
+Para tornar o processamento previsível, as regras deverão ser executadas em uma sequência lógica.
+
+```text
+1. Identificar servidor e vínculo
+              ↓
+2. Validar vigência do vínculo
+              ↓
+3. Identificar regime de trabalho
+              ↓
+4. Determinar grupo previdenciário
+              ↓
+5. Avaliar incidência previdenciária
+              ↓
+6. Determinar RGPS / RPPS / tratamento específico
+              ↓
+7. Avaliar condições de IRRF
+              ↓
+8. Avaliar exceções e isenções
+              ↓
+9. Gerar conjunto de rubricas aplicáveis
+```
+
+A saída do processamento não deverá ser necessariamente uma única rubrica. Um mesmo servidor poderá possuir, por exemplo, uma rubrica previdenciária e uma rubrica tributária na mesma competência.
+
+---
+
+## 7. Matrizes de decisão
+
+As regras anteriores podem ser consolidadas em matrizes de decisão para facilitar sua validação funcional.
+
+### 7.1 Matriz previdenciária inicial
+
+| Situação | Vínculo vigente | Grupo previdenciário | Resultado |
+|---|---:|---|---|
+| Comissionado sem vínculo efetivo | Sim | RGPS | Avaliar rubrica RGPS |
+| Temporário | Sim | RGPS | Avaliar rubrica RGPS |
+| Prestador PF / contribuinte individual | Sim | RGPS | Avaliar rubrica RGPS |
+| Servidor efetivo sujeito ao regime próprio | Sim | RPPS | Avaliar rubrica RPPS |
+| Servidor militar | Sim | MILITAR | Aplicar tratamento específico |
+| Qualquer vínculo encerrado | Não | NÃO APLICÁVEL | Não lançar contribuição referente ao vínculo |
+| Regime não reconhecido | Sim | NÃO IDENTIFICADO | Não lançar automaticamente e sinalizar para análise |
+
+### 7.2 Matriz inicial de IRRF
+
+| Vínculo vigente | Rendimento tributável | Isenção vigente | Resultado |
+|---:|---:|---:|---|
+| Sim | Sim | Não | Avaliar/Lançar IRRF |
+| Sim | Sim | Sim | Não lançar IRRF |
+| Sim | Não | Não | Não lançar IRRF |
+| Não | — | — | Não lançar IRRF |
+
+### 7.3 Combinação das decisões
+
+As decisões previdenciárias e tributárias devem ser independentes.
+
+Por exemplo:
+
+| Cenário | Previdência | IRRF | Resultado lógico |
+|---|---|---|---|
+| Servidor RGPS sujeito a IRRF | RGPS | Sim | RGPS + IRRF |
+| Servidor RGPS isento de IRRF | RGPS | Não | RGPS |
+| Servidor RPPS sujeito a IRRF | RPPS | Sim | RPPS + IRRF |
+| Servidor RPPS isento de IRRF | RPPS | Não | RPPS |
+| Vínculo não vigente | Não aplicável | Não | Nenhuma rubrica decorrente do vínculo |
+
+Essa separação evita criar uma regra única excessivamente complexa e permite que cada domínio seja alterado ou validado de forma independente.
