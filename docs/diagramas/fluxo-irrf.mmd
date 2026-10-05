@@ -1,0 +1,31 @@
+flowchart TD
+
+    A([Início]) --> B[Identificar servidor e vínculo]
+    B --> C{Vínculo vigente<br/>na competência?}
+
+    C -- Não --> D[Não aplicar rubrica de IRRF]
+    D --> Z([Fim])
+
+    C -- Sim --> E{Possui rendimento<br/>tributável?}
+
+    E -- Não --> F[Não aplicar rubrica de IRRF]
+    F --> Z
+
+    E -- Sim --> G{Servidor inativo<br/>ou aposentado?}
+
+    G -- Não --> H{Possui outra condição<br/>válida de isenção?}
+    H -- Não --> I[Aplicar rubrica de IRRF]
+    H -- Sim --> J{Isenção vigente<br/>na competência?}
+
+    G -- Sim --> K{Possui isenção<br/>de IRRF?}
+    K -- Não --> I
+    K -- Sim --> L{Isenção vigente<br/>na competência?}
+
+    L -- Sim --> M[Não aplicar rubrica de IRRF]
+    L -- Não --> I
+
+    J -- Sim --> M
+    J -- Não --> I
+
+    I --> Z
+    M --> Z
