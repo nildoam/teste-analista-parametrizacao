@@ -926,3 +926,163 @@ A estrutura será dividida em funções responsáveis por:
 - registrar situações que necessitem de análise.
 
 Essa organização busca manter as responsabilidades separadas e facilitar testes e futuras alterações das regras.
+
+## 12. Cenários de teste
+
+Para validar a correspondência entre as regras documentadas e a implementação de referência, foram definidos cenários representativos do processamento.
+
+Os testes automatizados estão disponíveis em:
+
+```text
+src/test_regras_parametrizacao.py
+```
+
+### 12.1 Matriz de cenários
+
+| Cenário | Regime/Situação | Previdência | IRRF | Resultado esperado |
+|---|---|---|---|---|
+| 01 | Efetivo RPPS | Incide | Tributável e sem isenção | `RPPS + IRRF` |
+| 02 | Temporário | Incide | Tributável e sem isenção | `RGPS + IRRF` |
+| 03 | Comissionado sem vínculo efetivo | Incide | Isenção vigente | `RGPS` |
+| 04 | Inativo/Aposentado com isenção | Conforme enquadramento | Isenção vigente | Sem `IRRF` |
+| 05 | Vínculo encerrado | Não aplicável | Não aplicável | Nenhuma rubrica |
+| 06 | Regime desconhecido | Não identificado | Não tributável no cenário | Ocorrência para análise |
+| 07 | Militar | Tratamento específico | Não tributável no cenário | Ocorrência para tratamento específico |
+
+### 12.2 Cenário 01 — Servidor efetivo RPPS
+
+**Entrada principal:**
+
+```text
+regime = EFETIVO_RPPS
+vínculo vigente = SIM
+incidência previdenciária = SIM
+rendimento tributável = SIM
+isenção IRRF = NÃO
+```
+
+**Resultado esperado:**
+
+```text
+rubricas = [RPPS, IRRF]
+ocorrencias = []
+```
+
+---
+
+### 12.3 Cenário 02 — Servidor temporário
+
+**Entrada principal:**
+
+```text
+regime = TEMPORARIO
+vínculo vigente = SIM
+incidência previdenciária = SIM
+rendimento tributável = SIM
+isenção IRRF = NÃO
+```
+
+**Resultado esperado:**
+
+```text
+rubricas = [RGPS, IRRF]
+ocorrencias = []
+```
+
+---
+
+### 12.4 Cenário 03 — RGPS com isenção de IRRF
+
+O servidor permanece sujeito à contribuição previdenciária, porém possui condição válida de isenção tributária.
+
+**Resultado esperado:**
+
+```text
+rubricas = [RGPS]
+ocorrencias = []
+```
+
+Esse cenário demonstra a independência entre as regras previdenciária e tributária.
+
+---
+
+### 12.5 Cenário 04 — Inativo/Aposentado com isenção vigente
+
+A situação de inatividade ou aposentadoria não representa, isoladamente, isenção automática.
+
+Quando existir uma condição válida e vigente de isenção de IRRF, a rubrica tributária não deverá ser aplicada.
+
+**Resultado esperado:**
+
+```text
+IRRF não aplicável
+```
+
+---
+
+### 12.6 Cenário 05 — Vínculo encerrado
+
+Quando a data final do vínculo for anterior à competência processada, nenhuma regra decorrente desse vínculo deverá produzir lançamento.
+
+**Resultado esperado:**
+
+```text
+rubricas = []
+ocorrencias = []
+```
+
+---
+
+### 12.7 Cenário 06 — Regime não identificado
+
+Quando o regime informado não puder ser associado a uma regra previdenciária conhecida, nenhuma contribuição previdenciária deverá ser presumida.
+
+**Resultado esperado:**
+
+```text
+rubricas = []
+
+ocorrencias = [
+    REGIME_PREVIDENCIARIO_NAO_IDENTIFICADO
+]
+```
+
+---
+
+### 12.8 Cenário 07 — Regime militar
+
+O regime militar não deverá ser automaticamente tratado pelas regras de RGPS ou RPPS civil.
+
+**Resultado esperado:**
+
+```text
+rubricas = []
+
+ocorrencias = [
+    TRATAMENTO_PREVIDENCIARIO_ESPECIFICO
+]
+```
+
+---
+
+### 12.9 Critério de validação
+
+Um cenário será considerado aprovado quando o conjunto de rubricas e ocorrências retornado pela implementação corresponder ao resultado definido na matriz de decisão.
+
+Os testes automatizados permitem verificar essa correspondência sempre que a implementação for alterada.
+
+A estratégia busca garantir a rastreabilidade:
+
+```text
+Regra de negócio
+       ↓
+Matriz de decisão
+       ↓
+Pseudocódigo
+       ↓
+Implementação
+       ↓
+Cenário de teste
+       ↓
+Resultado esperado
+```
