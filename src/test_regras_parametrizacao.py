@@ -22,6 +22,7 @@ def criar_servidor(**alteracoes):
 
     servidor = {
         "regime": "EFETIVO_RPPS",
+        "situacao_funcional": "ATIVO",
         "data_inicio_vinculo": date(2020, 1, 1),
         "data_fim_vinculo": None,
         "incidencia_previdenciaria": True,
@@ -125,6 +126,7 @@ class TestRegrasParametrizacao(unittest.TestCase):
         """
 
         servidor = criar_servidor(
+            situacao_funcional="APOSENTADO",
             possui_isencao_irrf=True,
             data_inicio_isencao=date(2024, 1, 1),
             data_fim_isencao=None,
