@@ -661,3 +661,268 @@ docs/diagramas/
 ```
 
 Além da representação gráfica, os respectivos arquivos-fonte serão mantidos no repositório para permitir manutenção e versionamento dos fluxos.
+
+## 10. Pseudocódigo
+
+O pseudocódigo a seguir representa a tradução das regras funcionais para uma sequência lógica de processamento.
+
+Seu objetivo é demonstrar a implementação conceitual das regras sem vinculá-las a uma linguagem de programação específica.
+
+### 10.1 Processamento principal
+
+O processamento recebe como entradas os dados do servidor e a competência da folha e retorna o conjunto de rubricas aplicáveis.
+
+```text id="w0l3c2"
+FUNÇÃO PROCESSAR_SERVIDOR(servidor, competencia)
+
+    rubricas = lista vazia
+    ocorrencias = lista vazia
+
+    SE NÃO VINCULO_VIGENTE(servidor, competencia)
+        RETORNAR rubricas, ocorrencias
+    FIM SE
+
+    grupo_previdenciario =
+        IDENTIFICAR_GRUPO_PREVIDENCIARIO(servidor)
+
+    SE grupo_previdenciario = RGPS
+
+        SE POSSUI_INCIDENCIA_PREVIDENCIARIA(servidor)
+            ADICIONAR "RGPS" EM rubricas
+        FIM SE
+
+    SENÃO SE grupo_previdenciario = RPPS
+
+        SE POSSUI_INCIDENCIA_PREVIDENCIARIA(servidor)
+            ADICIONAR "RPPS" EM rubricas
+        FIM SE
+
+    SENÃO SE grupo_previdenciario = MILITAR
+
+        ADICIONAR
+            "TRATAMENTO_PREVIDENCIARIO_ESPECIFICO"
+            EM ocorrencias
+
+    SENÃO
+
+        ADICIONAR
+            "REGIME_PREVIDENCIARIO_NAO_IDENTIFICADO"
+            EM ocorrencias
+
+    FIM SE
+
+    SE APLICAR_IRRF(servidor, competencia)
+        ADICIONAR "IRRF" EM rubricas
+    FIM SE
+
+    RETORNAR rubricas, ocorrencias
+
+FIM FUNÇÃO
+```
+
+O processamento retorna separadamente:
+
+- **rubricas**, contendo os lançamentos identificados pelas regras;
+- **ocorrências**, contendo situações que necessitam de tratamento ou validação.
+
+Essa separação evita transformar inconsistências cadastrais em lançamentos financeiros.
+
+---
+
+### 10.2 Validação da vigência do vínculo
+
+```text id="jhd9y8"
+FUNÇÃO VINCULO_VIGENTE(servidor, competencia)
+
+    SE servidor.data_inicio > competencia
+        RETORNAR FALSO
+    FIM SE
+
+    SE servidor.data_fim EXISTIR
+       E servidor.data_fim < competencia
+
+        RETORNAR FALSO
+    FIM SE
+
+    RETORNAR VERDADEIRO
+
+FIM FUNÇÃO
+```
+
+A ausência de data final representa um vínculo ainda vigente, desde que sua data inicial seja anterior ou igual à competência processada.
+
+---
+
+### 10.3 Identificação do grupo previdenciário
+
+```text id="96rxfo"
+FUNÇÃO IDENTIFICAR_GRUPO_PREVIDENCIARIO(servidor)
+
+    SE servidor.regime = COMISSIONADO_SEM_VINCULO
+        RETORNAR RGPS
+
+    SENÃO SE servidor.regime = TEMPORARIO
+        RETORNAR RGPS
+
+    SENÃO SE servidor.regime = PRESTADOR_PF
+        RETORNAR RGPS
+
+    SENÃO SE servidor.regime = EFETIVO_RPPS
+        RETORNAR RPPS
+
+    SENÃO SE servidor.regime = MILITAR
+        RETORNAR MILITAR
+
+    SENÃO
+        RETORNAR NÃO_IDENTIFICADO
+
+    FIM SE
+
+FIM FUNÇÃO
+```
+
+Na implementação definitiva, essas correspondências devem preferencialmente ser mantidas como parâmetros, evitando que novas classificações exijam alteração estrutural do algoritmo.
+
+---
+
+### 10.4 Avaliação da contribuição previdenciária
+
+A incidência previdenciária funciona como condição adicional ao enquadramento.
+
+```text id="1tmkfn"
+FUNÇÃO POSSUI_INCIDENCIA_PREVIDENCIARIA(servidor)
+
+    SE servidor.incidencia_previdenciaria = VERDADEIRO
+        RETORNAR VERDADEIRO
+    SENÃO
+        RETORNAR FALSO
+    FIM SE
+
+FIM FUNÇÃO
+```
+
+Assim, identificar o servidor como pertencente ao RGPS ou RPPS não significa, isoladamente, gerar uma rubrica. As demais condições da parametrização ainda devem ser satisfeitas.
+
+---
+
+### 10.5 Avaliação do IRRF
+
+```text id="9c4p47"
+FUNÇÃO APLICAR_IRRF(servidor, competencia)
+
+    SE NÃO VINCULO_VIGENTE(servidor, competencia)
+        RETORNAR FALSO
+    FIM SE
+
+    SE servidor.possui_rendimento_tributavel = FALSO
+        RETORNAR FALSO
+    FIM SE
+
+    SE POSSUI_ISENCAO_IRRF_VIGENTE(servidor, competencia)
+        RETORNAR FALSO
+    FIM SE
+
+    RETORNAR VERDADEIRO
+
+FIM FUNÇÃO
+```
+
+A situação funcional poderá participar da identificação da condição de isenção, mas a condição de aposentado ou inativo não deverá, isoladamente, impedir o IRRF.
+
+---
+
+### 10.6 Validação da isenção de IRRF
+
+```text id="twzjn8"
+FUNÇÃO POSSUI_ISENCAO_IRRF_VIGENTE(servidor, competencia)
+
+    SE servidor.possui_isencao_irrf = FALSO
+        RETORNAR FALSO
+    FIM SE
+
+    SE servidor.data_inicio_isencao > competencia
+        RETORNAR FALSO
+    FIM SE
+
+    SE servidor.data_fim_isencao EXISTIR
+       E servidor.data_fim_isencao < competencia
+
+        RETORNAR FALSO
+    FIM SE
+
+    RETORNAR VERDADEIRO
+
+FIM FUNÇÃO
+```
+
+Essa validação impede que um registro histórico de isenção seja utilizado fora de seu período de validade.
+
+---
+
+### 10.7 Resultado do processamento
+
+Considere, conceitualmente, um servidor com:
+
+```text id="n02ms3"
+regime = EFETIVO_RPPS
+vinculo_vigente = VERDADEIRO
+incidencia_previdenciaria = VERDADEIRO
+possui_rendimento_tributavel = VERDADEIRO
+possui_isencao_irrf = FALSO
+```
+
+O processamento deverá produzir:
+
+```text id="2fmq1x"
+rubricas = [
+    "RPPS",
+    "IRRF"
+]
+
+ocorrencias = []
+```
+
+Em outro cenário:
+
+```text id="0a90yu"
+regime = REGIME_DESCONHECIDO
+vinculo_vigente = VERDADEIRO
+```
+
+o resultado previdenciário deverá ser:
+
+```text id="hruocb"
+rubricas = []
+
+ocorrencias = [
+    "REGIME_PREVIDENCIARIO_NAO_IDENTIFICADO"
+]
+```
+
+A segunda situação demonstra o princípio de falha segura adotado na solução: a impossibilidade de identificar corretamente uma regra não deve produzir automaticamente uma rubrica de desconto.
+
+---
+
+## 11. Implementação de referência
+
+As regras apresentadas no pseudocódigo serão traduzidas para uma implementação simplificada em Python.
+
+O código será disponibilizado em:
+
+```text id="8nyhhq"
+src/regras_parametrizacao.py
+```
+
+A implementação terá caráter demonstrativo e deverá manter correspondência direta com as regras documentadas anteriormente.
+
+A estrutura será dividida em funções responsáveis por:
+
+- validar a vigência do vínculo;
+- determinar o grupo previdenciário;
+- validar a incidência previdenciária;
+- avaliar a vigência da isenção de IRRF;
+- determinar a aplicabilidade do IRRF;
+- consolidar as rubricas aplicáveis;
+- registrar situações que necessitem de análise.
+
+Essa organização busca manter as responsabilidades separadas e facilitar testes e futuras alterações das regras.
