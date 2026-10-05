@@ -16,6 +16,8 @@ O objetivo da solução é estruturar os critérios lógicos necessários para d
 - **RGPS/INSS** — contribuição ao Regime Geral de Previdência Social;
 - **RPPS** — contribuição ao Regime Próprio de Previdência Social.
 
+Com base no agrupamento das regras apresentadas no teste, foram propostas **3 rubricas de desconto**, compartilhadas pelos vínculos que possuem a mesma natureza de incidência.
+
 A solução concentra-se na decisão sobre **quando uma rubrica deve ou não ser aplicada**, independentemente da fórmula utilizada posteriormente para cálculo de seu valor.
 
 ---
